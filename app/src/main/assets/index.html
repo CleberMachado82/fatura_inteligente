@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Fatura Inteligente</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonte Inter do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SheetJS (XLSX) via CDN para exportação .xlsx -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-zinc-50 text-zinc-900 font-sans antialiased selection:bg-[#FF6B00] selection:text-white">
+
+    <!-- Container Principal Compacto -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+
+        <!-- 1. Cabeçalho Aprimorado -->
+        <header class="relative bg-white border border-zinc-200 rounded-2xl px-5 py-4 shadow-xs overflow-hidden">
+            <div class="absolute top-0 inset-x-0 h-1 bg-[#FF6B00]"></div>
+
+            <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 pt-0.5">
+                <div class="flex items-center gap-3.5">
+                    <div class="bg-white border border-zinc-200 p-1.5 rounded-xl shadow-2xs flex items-center justify-center w-11 h-11 shrink-0">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2d/2023_Ita%C3%BA_Unibanco_Logo.png?utm_source=pt.wikipedia.org&utm_campaign=index&utm_content=original" alt="Logo Itaú" class="w-full h-full object-contain rounded-md">
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg font-bold text-zinc-900 tracking-tight leading-tight">Fatura Inteligente</h1>
+                        </div>
+                        <p class="text-xs font-medium text-zinc-500 mt-0.5">Controle de faturas, limites e gastos</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between xl:justify-end gap-2">
+                    <div class="flex items-center gap-2 bg-zinc-50 border border-zinc-200 px-3 py-2 rounded-xl text-xs font-medium text-zinc-700">
+                        <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-[#FF6B00]"></i>
+                        <span id="current-date" class="capitalize">Carregando data...</span>
+                    </div>
+
+                    <div class="hidden sm:block h-6 w-px bg-zinc-200 mx-0.5"></div>
+
+                    <!-- Botão Cartão Itaú -->
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="openSheetModal('itau')" class="inline-flex items-center gap-1.5 bg-[#FF6B00] hover:bg-[#e56000] text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition-all cursor-pointer">
+                            <i data-lucide="credit-card" class="w-3.5 h-3.5 text-white"></i>
+                            <span>Itaú</span>
+                        </button>
+                    </div>
+
+                    <div class="hidden sm:block h-6 w-px bg-zinc-200 mx-0.5"></div>
+
+                    <!-- Botões Planilhas Individuais -->
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="openSheetModal('cleber')" class="inline-flex items-center gap-1.5 bg-lime-600 hover:bg-lime-700 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer">
+                            <i data-lucide="user" class="w-3.5 h-3.5 text-white"></i>
+                            <span>Cleber</span>
+                        </button>
+
+                        <button onclick="openSheetModal('clau')" class="inline-flex items-center gap-1.5 bg-amber-300 hover:bg-amber-400 text-zinc-950 text-xs font-semibold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer">
+                            <i data-lucide="user" class="w-3.5 h-3.5 text-zinc-950"></i>
+                            <span>Clau</span>
+                        </button>
+
+                        <button onclick="openSheetModal('mae')" class="inline-flex items-center gap-1.5 bg-orange-300 hover:bg-orange-400 text-zinc-950 text-xs font-semibold px-3 py-2 rounded-xl shadow-2xs transition-all cursor-pointer">
+                            <i data-lucide="user" class="w-3.5 h-3.5 text-zinc-950"></i>
+                            <span>Mãe</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 2. Card Principal do Cartão + Gráfico Anual lado a lado -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            
+            <!-- Itaú -->
+            <div class="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between">
+                <div class="bg-[#FF6B00] px-5 py-3.5 text-white flex items-center justify-between border-b border-orange-500">
+                    <div class="flex items-center gap-2.5">
+                        <div class="bg-white p-1 rounded-lg shadow-2xs flex items-center justify-center w-9 h-9 shrink-0">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2d/2023_Ita%C3%BA_Unibanco_Logo.png?utm_source=pt.wikipedia.org&utm_campaign=index&utm_content=original" alt="Logo Itaú" class="w-full h-full object-contain rounded-md">
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold tracking-wide text-white">ITAÚ</h2>
+                            <p class="text-[11px] font-medium text-white/90">Visa Platinum •••• 7251</p>
+                        </div>
+                    </div>
+                    <span id="itau-status-badge" class="bg-white/20 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-white/30">
+                        Sem Lançamentos
+                    </span>
+                </div>
+
+                <div class="p-5 space-y-4">
+                    <div class="flex flex-wrap items-end justify-between gap-2">
+                        <div>
+                            <span id="itau-fatura-label" class="text-xs font-medium text-zinc-500 block">Fatura Atual</span>
+                            <span id="itau-fatura" class="text-2xl font-bold text-zinc-900">R$ 0,00</span>
+                        </div>
+                        <div class="flex gap-3 text-right">
+                            <div class="bg-zinc-50 border border-zinc-200 px-2.5 py-1 rounded-lg">
+                                <span class="text-[10px] text-zinc-400 block uppercase font-semibold">Fechamento</span>
+                                <span id="itau-fechamento" class="text-xs font-semibold text-zinc-800">05 Nov</span>
+                            </div>
+                            <div class="bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-lg">
+                                <span class="text-[10px] text-zinc-500 block uppercase font-semibold">Vencimento</span>
+                                <span id="itau-vencimento" class="text-xs font-bold text-zinc-900">12 Nov</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 bg-zinc-50/60 border border-zinc-200 rounded-xl p-3">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-zinc-500">Limite utilizado: <strong id="itau-percent" class="text-zinc-800">0,0%</strong></span>
+                            <span class="text-zinc-500">Disponível: <strong id="itau-disponivel" class="text-emerald-600 font-semibold">R$ 45.780,00</strong></span>
+                        </div>
+                        <div class="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
+                            <div id="itau-bar" class="bg-[#FF6B00] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="text-[11px] text-zinc-400 text-right">Limite total: R$ 45.780,00</div>
+                    </div>
+
+                    <div class="bg-orange-50/60 border border-orange-200 rounded-xl p-3 space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-semibold text-zinc-800 flex items-center gap-1.5">
+                                <i data-lucide="target" class="w-3.5 h-3.5 text-[#FF6B00]"></i>
+                                Meta Mensal: <span class="text-[#FF6B00] font-bold">R$ 8.000,00</span>
+                            </span>
+                            <span id="itau-meta-status" class="text-[11px] font-medium text-zinc-600">Restam R$ 8.000,00</span>
+                        </div>
+                        <div class="w-full bg-zinc-200 rounded-full h-2 overflow-hidden relative">
+                            <div id="itau-meta-bar" class="h-full rounded-full transition-all duration-500" style="width: 0%; background-color: #10b981;"></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-zinc-500">
+                            <span>Consumido da meta: <strong id="itau-meta-pct" class="text-zinc-800">0,0%</strong></span>
+                            <span id="itau-meta-badge" class="font-medium text-emerald-600">Dentro da meta</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Anual Itaú -->
+            <div class="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#FF6B00]"></span>
+                        <div>
+                            <h3 class="text-sm font-bold text-zinc-900">Gastos por Mês — Itaú</h3>
+                            <p class="text-xs text-zinc-500">Evolução anual vs. meta mensal</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="chart-year-itau" onchange="updateCharts()" class="bg-zinc-50 border border-zinc-200 text-zinc-800 text-xs font-semibold px-2.5 py-1 rounded-lg cursor-pointer focus:outline-none focus:border-[#FF6B00]"></select>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-600 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-md">
+                            <span class="w-3 border-t-2 border-dashed border-[#FF6B00]"></span> Meta R$ 8.000
+                        </span>
+                    </div>
+                </div>
+                <div class="relative w-full h-64 border border-zinc-200/80 rounded-xl p-2 bg-zinc-50/30"><canvas id="itauChart"></canvas></div>
+            </div>
+
+        </section>
+
+        <!-- 2.5 Resumo Individual do Mês Atual (Cleber, Clau, Mãe) -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Card Cleber -->
+            <div onclick="openSheetModal('cleber')" class="bg-white border border-zinc-200 hover:border-lime-500 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="bg-lime-600 text-white p-2.5 rounded-xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Planilha Individual</span>
+                        <h3 class="text-sm font-bold text-zinc-900">Cleber</h3>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[11px] text-zinc-400 block" id="cleber-month-label">Mês Atual</span>
+                    <span id="cleber-total" class="text-lg font-bold text-lime-700">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Card Clau -->
+            <div onclick="openSheetModal('clau')" class="bg-white border border-zinc-200 hover:border-amber-400 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-300 text-zinc-950 p-2.5 rounded-xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Planilha Individual</span>
+                        <h3 class="text-sm font-bold text-zinc-900">Clau</h3>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[11px] text-zinc-400 block" id="clau-month-label">Mês Atual</span>
+                    <span id="clau-total" class="text-lg font-bold text-amber-600">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Card Mãe -->
+            <div onclick="openSheetModal('mae')" class="bg-white border border-zinc-200 hover:border-orange-400 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="bg-orange-300 text-zinc-950 p-2.5 rounded-xl group-hover:scale-105 transition-transform">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Planilha Individual</span>
+                        <h3 class="text-sm font-bold text-zinc-900">Mãe</h3>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[11px] text-zinc-400 block" id="mae-month-label">Mês Atual</span>
+                    <span id="mae-total" class="text-lg font-bold text-orange-600">R$ 0,00</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Modal Planilha (Fundo Branco em Todas as Planilhas) -->
+    <div id="sheet-modal" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-5 z-50">
+        <div id="sheet-card-box" class="relative bg-white border border-zinc-200 rounded-2xl max-w-5xl w-full shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            
+            <!-- Faixa superior de destaque com a cor do botão correspondente -->
+            <div id="sheet-top-accent" class="h-1.5 w-full bg-[#FF6B00]"></div>
+
+            <!-- Cabeçalho Branco -->
+            <div id="sheet-header" class="bg-white border-b border-zinc-200 px-5 py-3.5 text-zinc-900 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <div id="sheet-icon-badge" class="bg-white border border-zinc-200 p-1 rounded-lg flex items-center justify-center w-9 h-9 shrink-0">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2d/2023_Ita%C3%BA_Unibanco_Logo.png?utm_source=pt.wikipedia.org&utm_campaign=index&utm_content=original" alt="Logo Itaú" class="w-full h-full object-contain rounded-md">
+                    </div>
+                    <div>
+                        <h3 id="sheet-title" class="text-sm font-bold tracking-wide text-zinc-900">Planilha de Gastos</h3>
+                        <p id="sheet-subtitle" class="text-[11px] font-medium text-zinc-500">Lançamentos • Gastos do mês</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                    <div id="sheet-period-box" class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-[#FF6B00]">
+                        <div class="flex items-center gap-1">
+                            <label for="sheet-month-select" class="text-[11px] font-semibold text-zinc-600">Mês:</label>
+                            <select id="sheet-month-select" onchange="changeSheetPeriod()" class="bg-transparent text-zinc-900 text-xs font-bold focus:outline-none cursor-pointer">
+                                <option value="0">Janeiro</option>
+                                <option value="1">Fevereiro</option>
+                                <option value="2">Março</option>
+                                <option value="3">Abril</option>
+                                <option value="4">Maio</option>
+                                <option value="5">Junho</option>
+                                <option value="6">Julho</option>
+                                <option value="7">Agosto</option>
+                                <option value="8">Setembro</option>
+                                <option value="9">Outubro</option>
+                                <option value="10">Novembro</option>
+                                <option value="11">Dezembro</option>
+                            </select>
+                        </div>
+                        <div class="h-4 w-px bg-zinc-200"></div>
+                        <div class="flex items-center gap-1">
+                            <label for="sheet-year-select" class="text-[11px] font-semibold text-zinc-600">Ano:</label>
+                            <select id="sheet-year-select" onchange="changeSheetPeriod()" class="bg-transparent text-zinc-900 text-xs font-bold focus:outline-none cursor-pointer"></select>
+                        </div>
+                    </div>
+
+                    <button onclick="closeSheetModal()" class="text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-100 border border-zinc-200 p-1.5 rounded-xl transition-colors cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barra de Ações + Legenda de Cores (Fundo Branco) -->
+            <div class="bg-white border-b border-zinc-200 px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="sheet-add-row-btn" type="button" onclick="addSheetRow()" class="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-50 text-zinc-800 border border-[#FF6B00] text-xs font-semibold px-3 py-1.5 rounded-lg shadow-2xs transition-colors cursor-pointer">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 text-zinc-700"></i><span>Nova Linha</span>
+                    </button>
+                    <button id="sheet-clear-btn" type="button" onclick="clearCurrentSheet()" class="inline-flex items-center gap-1.5 bg-white hover:bg-rose-50 text-zinc-700 hover:text-rose-700 border border-zinc-200 hover:border-rose-300 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+                        <i data-lucide="eraser" class="w-3.5 h-3.5"></i><span>Zerar Período</span>
+                    </button>
+                    <button id="sheet-export-xlsx-btn" type="button" onclick="exportCurrentSheetToXlsx()" class="hidden inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-2xs transition-colors cursor-pointer">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-700"></i><span>Baixar Excel (.xlsx)</span>
+                    </button>
+                </div>
+
+                <!-- Legenda de Cores Suaves para Planilhas Individuais (2x ou mais) -->
+                <div id="color-legend" class="hidden flex-wrap items-center gap-2 text-[10px] font-semibold text-zinc-700">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-blue-300/70" style="background-color: #93C5FD; color: #0F2942;">Mãe + Cleber</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-300/70" style="background-color: #86EFAC; color: #0F3A1E;">Clau + Cleber</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-sky-300/70" style="background-color: #7DD3FC; color: #0C2D48;">Mãe + Clau</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-purple-300/70" style="background-color: #D8B4FE; color: #33124D;">Os Três</span>
+                </div>
+
+                <span class="text-[11px] text-zinc-600 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg">Linhas: <strong id="sheet-row-count" class="text-zinc-900">10</strong></span>
+            </div>
+
+            <div class="overflow-y-auto flex-1 bg-white">
+                <table class="w-full border-collapse text-left">
+                    <thead id="sheet-thead" class="bg-white sticky top-0 z-10 border-b border-zinc-200 text-[11px] font-bold uppercase tracking-wider text-zinc-600">
+                        <!-- Cabeçalho dinâmico -->
+                    </thead>
+                    <tbody id="sheet-tbody" class="divide-y divide-zinc-200 text-xs bg-white"></tbody>
+                </table>
+            </div>
+
+            <div class="bg-white border-t border-zinc-200 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wide text-zinc-600">Total:</span>
+                    <span id="sheet-total-display" class="text-xl font-bold text-zinc-900 bg-white border border-zinc-200 px-3.5 py-1 rounded-xl shadow-2xs">R$ 0,00</span>
+                </div>
+                <button type="button" onclick="closeSheetModal()" id="sheet-done-btn" class="inline-flex items-center gap-1.5 bg-[#FF6B00] hover:bg-[#e56000] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xs transition-all cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4"></i><span>Salvar e Fechar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Alerta Personalizado -->
+    <div id="custom-alert-modal" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-xs hidden items-center justify-center p-4 z-[99999]">
+        <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div id="custom-alert-icon" class="w-12 h-12 rounded-full bg-orange-100 border border-orange-200 text-zinc-950 flex items-center justify-center mx-auto">
+                <i data-lucide="alert-circle" class="w-6 h-6 text-[#FF6B00]"></i>
+            </div>
+            <div class="space-y-1">
+                <h4 id="custom-alert-title" class="text-sm font-bold text-zinc-900">Aviso importante</h4>
+                <p id="custom-alert-message" class="text-xs text-zinc-600 leading-relaxed">Mensagem personalizada aqui.</p>
+            </div>
+            <div id="custom-alert-actions" class="flex gap-2 pt-2">
+                <button id="custom-alert-cancel" onclick="closeCustomAlert(false)" class="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer hidden">Cancelar</button>
+                <button id="custom-alert-confirm" onclick="closeCustomAlert(true)" class="flex-1 bg-[#FF6B00] hover:bg-[#e56000] text-white text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Principal -->
+    <script>
+        const STORAGE_KEY = 'dashboard_faturas_itau_v19_valor_total_parcela';
+        const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const MONTH_FULL_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        const nowInit = new Date();
+        const CURRENT_YEAR = nowInit.getFullYear();
+        const CURRENT_MONTH = nowInit.getMonth();
+        const INITIAL_ROW_COUNT = 10;
+
+        function getActiveWindowYears() {
+            return [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
+        }
+
+        const SPLIT_OPTIONS = [
+            { value: '', label: '— Selecione —' },
+            { value: 'cleber', label: 'Só Cleber' },
+            { value: 'clau', label: 'Só Clau' },
+            { value: 'mae', label: 'Só Mãe' },
+            { value: 'mae_clau', label: 'Mãe + Clau' },
+            { value: 'clau_cleber', label: 'Clau + Cleber' },
+            { value: 'mae_cleber', label: 'Mãe + Cleber' },
+            { value: 'todos', label: 'Clau + Mãe + Cleber' }
+        ];
+
+        let alertCallback = null;
+
+        function generateRowId() {
+            return 'row_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+        }
+
+        function hasAnyRowValueOrContent(row) {
+            if (!row) return false;
+            const hasDesc = !!(row.descricao && String(row.descricao).trim() !== '');
+            const hasParcela = !!(row.parcela && String(row.parcela).trim() !== '');
+            const hasTotal = parseCurrencyInput(row.valorTotal) > 0;
+            const hasValor = parseCurrencyInput(row.valor) > 0;
+            return hasDesc || hasParcela || hasTotal || hasValor;
+        }
+
+        function syncOverrideStateOnRow(row) {
+            if (!row) return;
+            if (!hasAnyRowValueOrContent(row)) {
+                row.customOverride = false;
+            }
+        }
+
+        function showCustomAlert(title, message, isConfirm = false, callback = null) {
+            document.getElementById('custom-alert-title').textContent = title;
+            document.getElementById('custom-alert-message').textContent = message;
+            alertCallback = callback;
+            
+            const cancelBtn = document.getElementById('custom-alert-cancel');
+            if (isConfirm) cancelBtn.classList.remove('hidden');
+            else cancelBtn.classList.add('hidden');
+
+            const modal = document.getElementById('custom-alert-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeCustomAlert(result) {
+            const modal = document.getElementById('custom-alert-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            const cb = alertCallback;
+            alertCallback = null;
+            if (cb) cb(result);
+        }
+
+        function renderCurrentDate() {
+            const dateElement = document.getElementById('current-date');
+            let formatted = nowInit.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            dateElement.textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        }
+
+        function getNextBusinessDayDate(year, monthIndex, targetDay) {
+            const date = new Date(year, monthIndex, targetDay);
+            const dayOfWeek = date.getDay();
+            if (dayOfWeek === 6) date.setDate(date.getDate() + 2);
+            else if (dayOfWeek === 0) date.setDate(date.getDate() + 1);
+            return date;
+        }
+
+        function formatShortDayMonth(dateObj) {
+            return `${String(dateObj.getDate()).padStart(2, '0')} ${MONTH_LABELS[dateObj.getMonth()]}`;
+        }
+
+        function renderCardBillingDates() {
+            const year = CURRENT_YEAR;
+            const month = CURRENT_MONTH;
+            const monthName = MONTH_FULL_NAMES[month];
+
+            document.getElementById('itau-fatura-label').textContent = `Fatura Atual (${monthName} ${year})`;
+
+            ['cleber', 'clau', 'mae'].forEach(person => {
+                const el = document.getElementById(`${person}-month-label`);
+                if (el) el.textContent = `${monthName} ${year}`;
+            });
+
+            document.getElementById('itau-fechamento').textContent = formatShortDayMonth(new Date(year, month, 5));
+
+            const dueDate = getNextBusinessDayDate(year, month, 12);
+            const formattedDueDate = formatShortDayMonth(dueDate) + (dueDate.getDate() !== 12 ? ' (Dia útil)' : '');
+
+            document.getElementById('itau-vencimento').textContent = formattedDueDate;
+        }
+
+        function updateInvoiceStatusBadge(badgeId, totalAmount, closingDay) {
+            const badge = document.getElementById(badgeId);
+            if (!badge) return;
+
+            if (totalAmount <= 0) {
+                badge.textContent = 'Sem Lançamentos';
+                badge.className = 'bg-white/20 text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-white/30';
+                return;
+            }
+
+            const year = CURRENT_YEAR;
+            const month = CURRENT_MONTH;
+            const todayDay = nowInit.getDate();
+            const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+            const effectiveClosingDay = Math.min(closingDay, lastDayOfMonth);
+            const dueDay = getNextBusinessDayDate(year, month, 12).getDate();
+
+            if (todayDay < effectiveClosingDay) {
+                badge.textContent = 'Fatura Aberta';
+                badge.className = 'bg-white/20 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-white/30';
+            } else if (todayDay <= dueDay) {
+                badge.textContent = 'Fatura Fechada';
+                badge.className = 'bg-white/20 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-white/30';
+            } else {
+                badge.textContent = 'Ciclo Encerrado';
+                badge.className = 'bg-white/85 text-zinc-950 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-orange-200';
+            }
+        }
+
+        function createEmptyRowObj() {
+            return {
+                id: generateRowId(),
+                descricao: '',
+                valorTotal: '',
+                parcela: '',
+                valor: '',
+                responsavel: '',
+                splitType: '',
+                sourceCard: '',
+                sourceRowId: '',
+                parentInstallmentId: '',
+                seriesId: '',
+                customOverride: false
+            };
+        }
+
+        function createEmptyRows(count = INITIAL_ROW_COUNT) {
+            return Array.from({ length: count }, () => createEmptyRowObj());
+        }
+
+        const sheetsConfig = {
+            itau: {
+                name: 'Itaú',
+                title: 'Planilha Itaú (•••• 7251)',
+                subtitle: 'Descrição → Valor Total → Parcela (ex: 5x) → Divisão',
+                isCard: true,
+                limit: 45780.00,
+                goal: 8000.00,
+                closingDay: 5,
+                accentClass: 'bg-[#FF6B00]',
+                borderAccentClass: 'border-[#FF6B00]',
+                focusRingClass: 'focus:border-[#FF6B00]',
+                btnClass: 'bg-[#FF6B00] hover:bg-[#e56000] text-white',
+                sheets: {}
+            },
+            cleber: {
+                name: 'Cleber',
+                title: 'Planilha Cleber',
+                subtitle: 'Lançamentos Cleber • Gastos do mês',
+                isCard: false,
+                accentClass: 'bg-lime-600',
+                borderAccentClass: 'border-lime-600',
+                focusRingClass: 'focus:border-lime-600',
+                btnClass: 'bg-lime-600 hover:bg-lime-700 text-white',
+                sheets: {}
+            },
+            clau: {
+                name: 'Clau',
+                title: 'Planilha Clau',
+                subtitle: 'Lançamentos Clau • Gastos do mês',
+                isCard: false,
+                accentClass: 'bg-amber-300',
+                borderAccentClass: 'border-amber-400',
+                focusRingClass: 'focus:border-amber-400',
+                btnClass: 'bg-amber-300 hover:bg-amber-400 text-zinc-950',
+                sheets: {}
+            },
+            mae: {
+                name: 'Mãe',
+                title: 'Planilha Mãe',
+                subtitle: 'Lançamentos Mãe • Gastos do mês',
+                isCard: false,
+                accentClass: 'bg-orange-300',
+                borderAccentClass: 'border-orange-400',
+                focusRingClass: 'focus:border-orange-400',
+                btnClass: 'bg-orange-300 hover:bg-orange-400 text-zinc-950',
+                sheets: {}
+            }
+        };
+
+        function getSheetKey(year, month) {
+            return `${year}-${month}`;
+        }
+
+        function getOrCreateSheet(sheetKeyName, year, month) {
+            const periodKey = getSheetKey(year, month);
+            if (!sheetsConfig[sheetKeyName].sheets[periodKey]) {
+                sheetsConfig[sheetKeyName].sheets[periodKey] = createEmptyRows(INITIAL_ROW_COUNT);
+            }
+            sheetsConfig[sheetKeyName].sheets[periodKey].forEach(r => {
+                if (!r.id) r.id = generateRowId();
+                if (typeof r.valorTotal === 'undefined') r.valorTotal = '';
+                syncOverrideStateOnRow(r);
+            });
+            return sheetsConfig[sheetKeyName].sheets[periodKey];
+        }
+
+        function purgeExpiredYears() {
+            const windowYears = getActiveWindowYears();
+            const minAllowedYear = windowYears[0];
+
+            Object.keys(sheetsConfig).forEach(sheetKeyName => {
+                const sheetsMap = sheetsConfig[sheetKeyName].sheets;
+                Object.keys(sheetsMap).forEach(periodKey => {
+                    const y = parseInt(periodKey.split('-')[0], 10);
+                    if (!isNaN(y) && y < minAllowedYear) {
+                        delete sheetsMap[periodKey];
+                    }
+                });
+            });
+        }
+
+        function saveDataToStorage() {
+            try {
+                purgeExpiredYears();
+                const payload = {};
+                Object.keys(sheetsConfig).forEach(k => {
+                    payload[k] = { sheets: sheetsConfig[k].sheets };
+                });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                console.warn('Erro ao salvar no localStorage:', e);
+            }
+        }
+
+        function loadDataFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const saved = JSON.parse(raw);
+                    Object.keys(sheetsConfig).forEach((k) => {
+                        if (saved[k] && saved[k].sheets) {
+                            sheetsConfig[k].sheets = saved[k].sheets;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar dados:', e);
+            }
+            purgeExpiredYears();
+            populateYearSelectors();
+            processAllSync();
+        }
+
+        function populateYearSelectors() {
+            const windowYears = getActiveWindowYears();
+            const minYear = windowYears[0];
+            const yearsSet = new Set(windowYears);
+            
+            Object.keys(sheetsConfig).forEach(k => {
+                Object.keys(sheetsConfig[k].sheets).forEach(periodKey => {
+                    const y = parseInt(periodKey.split('-')[0], 10);
+                    if (!isNaN(y) && y >= minYear) yearsSet.add(y);
+                });
+            });
+
+            const sortedYears = Array.from(yearsSet).sort((a, b) => a - b);
+
+            ['chart-year-itau', 'sheet-year-select'].forEach(elId => {
+                const sel = document.getElementById(elId);
+                if (!sel) return;
+                const currentVal = parseInt(sel.value, 10) || CURRENT_YEAR;
+                sel.innerHTML = '';
+                sortedYears.forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    sel.appendChild(opt);
+                });
+                sel.value = sortedYears.includes(currentVal) ? String(currentVal) : String(CURRENT_YEAR);
+            });
+        }
+
+        function formatParcelaInput(raw) {
+            const trimmed = (raw || '').trim().toLowerCase();
+            const xMatch = trimmed.match(/^(\d+)\s*x$/);
+            if (xMatch) {
+                const total = parseInt(xMatch[1], 10);
+                if (total > 1) {
+                    return `01/${String(total).padStart(2, '0')}`;
+                }
+                return '1x';
+            }
+            const slashMatch = trimmed.match(/^(\d+)\s*\/\s*(\d+)$/);
+            if (slashMatch) {
+                const cur = parseInt(slashMatch[1], 10);
+                const tot = parseInt(slashMatch[2], 10);
+                return `${String(cur).padStart(2, '0')}/${String(tot).padStart(2, '0')}`;
+            }
+            return (raw || '').trim();
+        }
+
+        function formatValorInput(raw) {
+            const num = parseCurrencyInput(raw);
+            if (num <= 0) return '';
+            return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function getInstallmentParts(parcelaRaw) {
+            const formatted = formatParcelaInput(parcelaRaw || '');
+            const match = formatted.match(/^(\d+)\s*\/\s*(\d+)$/);
+            if (!match) return null;
+            const currentPart = parseInt(match[1], 10);
+            const totalParts = parseInt(match[2], 10);
+            if (totalParts <= 1) return null;
+            return { currentPart, totalParts, formatted };
+        }
+
+        function isTwoOrMoreInstallments(parcelaRaw) {
+            const formatted = (formatParcelaInput(parcelaRaw || '') || '').trim().toLowerCase();
+            if (!formatted) return false;
+
+            const slashMatch = formatted.match(/^(\d+)\s*\/\s*(\d+)$/);
+            if (slashMatch) {
+                return parseInt(slashMatch[2], 10) >= 2;
+            }
+
+            const xMatch = formatted.match(/^(\d+)\s*x$/);
+            if (xMatch) {
+                return parseInt(xMatch[1], 10) >= 2;
+            }
+
+            return false;
+        }
+
+        function calculateInstallmentFromTotal(row) {
+            const totalNum = parseCurrencyInput(row.valorTotal);
+            if (totalNum <= 0) return;
+
+            const partsInfo = getInstallmentParts(row.parcela);
+            if (partsInfo && partsInfo.totalParts > 1) {
+                row.valor = formatValorInput(totalNum / partsInfo.totalParts);
+            } else {
+                row.valor = formatValorInput(totalNum);
+            }
+        }
+
+        function getSplitTargets(responsavel) {
+            switch (responsavel) {
+                case 'cleber':
+                    return { targets: ['cleber'], divisor: 1, isShared: false };
+                case 'clau':
+                    return { targets: ['clau'], divisor: 1, isShared: false };
+                case 'mae':
+                    return { targets: ['mae'], divisor: 1, isShared: false };
+                case 'mae_clau':
+                    return { targets: ['mae', 'clau'], divisor: 2, isShared: true };
+                case 'clau_cleber':
+                    return { targets: ['clau', 'cleber'], divisor: 2, isShared: true };
+                case 'mae_cleber':
+                    return { targets: ['mae', 'cleber'], divisor: 2, isShared: true };
+                case 'todos':
+                    return { targets: ['clau', 'mae', 'cleber'], divisor: 3, isShared: true };
+                default:
+                    return { targets: [], divisor: 1, isShared: false };
+            }
+        }
+
+        function getDescriptionColorStyle(row, sheetKeyName) {
+            if (sheetsConfig[sheetKeyName].isCard) return { className: '', style: '' };
+            if (!row.splitType) return { className: '', style: '' };
+            if (!isTwoOrMoreInstallments(row.parcela)) return { className: '', style: '' };
+
+            switch (row.splitType) {
+                case 'mae_cleber':
+                    return { className: 'font-semibold', style: 'background-color: #93C5FD; color: #0F2942;' };
+                case 'clau_cleber':
+                    return { className: 'font-semibold', style: 'background-color: #86EFAC; color: #0F3A1E;' };
+                case 'mae_clau':
+                    return { className: 'font-semibold', style: 'background-color: #7DD3FC; color: #0C2D48;' };
+                case 'todos':
+                    return { className: 'font-semibold', style: 'background-color: #D8B4FE; color: #33124D;' };
+                default:
+                    return { className: '', style: '' };
+            }
+        }
+
+        function deleteFutureInstallmentsForRow(sheetKeyName, startYear, startMonth, rowObj) {
+            if (!rowObj) return;
+            const cfg = sheetsConfig[sheetKeyName];
+            if (!cfg) return;
+
+            const descLower = (rowObj.descricao || '').trim().toLowerCase();
+            const seriesId = rowObj.seriesId || '';
+            const parentId = rowObj.parentInstallmentId || rowObj.id || '';
+            const sourceRowId = rowObj.sourceRowId || '';
+
+            Object.keys(cfg.sheets).forEach(periodKey => {
+                const [yStr, mStr] = periodKey.split('-');
+                const y = parseInt(yStr, 10);
+                const m = parseInt(mStr, 10);
+
+                if (y < startYear || (y === startYear && m <= startMonth)) return;
+
+                const periodRows = cfg.sheets[periodKey] || [];
+                for (let i = 0; i < periodRows.length; i++) {
+                    const r = periodRows[i];
+                    if (!r) continue;
+
+                    const matchBySeries = seriesId && r.seriesId === seriesId;
+                    const matchByParent = parentId && (r.parentInstallmentId === parentId || r.id === parentId);
+                    const matchBySource = sourceRowId && r.sourceRowId === sourceRowId;
+                    const matchByDescAndParcela = descLower &&
+                        (r.descricao || '').trim().toLowerCase() === descLower &&
+                        !!getInstallmentParts(r.parcela);
+
+                    if (matchBySeries || matchByParent || matchBySource || matchByDescAndParcela) {
+                        periodRows[i] = createEmptyRowObj();
+                    }
+                }
+            });
+        }
+
+        function deleteSyncedIndividualRowsForCardRow(cardKey, cardRowId, cardSeriesId, descOriginal, startYear = null, startMonth = null) {
+            const individuals = ['cleber', 'clau', 'mae'];
+            const descLower = (descOriginal || '').trim().toLowerCase();
+
+            individuals.forEach(person => {
+                const personSheets = sheetsConfig[person].sheets;
+                Object.keys(personSheets).forEach(periodKey => {
+                    const [yStr, mStr] = periodKey.split('-');
+                    const y = parseInt(yStr, 10);
+                    const m = parseInt(mStr, 10);
+
+                    const isTargetOrFuturePeriod = (startYear === null || startMonth === null)
+                        ? true
+                        : (y > startYear || (y === startYear && m >= startMonth));
+
+                    const rows = personSheets[periodKey] || [];
+                    for (let i = 0; i < rows.length; i++) {
+                        const r = rows[i];
+                        if (!r) continue;
+
+                        const matchesCardRow = r.sourceCard === cardKey && r.sourceRowId === cardRowId;
+                        const matchesSeries = cardSeriesId && (
+                            r.seriesId === `${person}_${cardSeriesId}` ||
+                            r.seriesId === cardSeriesId ||
+                            r.parentInstallmentId === cardRowId ||
+                            r.parentInstallmentId === cardSeriesId
+                        );
+                        const matchesDescFromCard = isTargetOrFuturePeriod && descLower &&
+                            (r.descricao || '').trim().toLowerCase() === descLower &&
+                            (r.sourceCard === cardKey || !!getInstallmentParts(r.parcela) || (y === startYear && m === startMonth));
+
+                        if (matchesCardRow || matchesSeries || matchesDescFromCard) {
+                            rows[i] = createEmptyRowObj();
+                        }
+                    }
+                });
+            });
+        }
+
+        function cascadeEditedRowForward(sheetKeyName, startYear, startMonth, rowIndex) {
+            const rows = getOrCreateSheet(sheetKeyName, startYear, startMonth);
+            const row = rows[rowIndex];
+            if (!row) return;
+
+            const desc = (row.descricao || '').trim();
+            const partsInfo = getInstallmentParts(row.parcela);
+            const rawInstallmentVal = parseCurrencyInput(row.valor);
+
+            if (!desc || !partsInfo || rawInstallmentVal <= 0) {
+                deleteFutureInstallmentsForRow(sheetKeyName, startYear, startMonth, row);
+                return;
+            }
+
+            const { currentPart, totalParts } = partsInfo;
+            if (currentPart >= totalParts) return;
+
+            const formattedInstallmentVal = formatValorInput(rawInstallmentVal);
+            const formattedTotalVal = formatValorInput(row.valorTotal);
+
+            if (!row.seriesId) {
+                row.seriesId = row.parentInstallmentId || row.id || generateRowId();
+            }
+
+            const isCard = sheetsConfig[sheetKeyName].isCard;
+            const minAllowedYear = getActiveWindowYears()[0];
+
+            for (let part = currentPart + 1; part <= totalParts; part++) {
+                const offset = part - currentPart;
+                const targetDate = new Date(startYear, startMonth + offset, 1);
+                const targetYear = targetDate.getFullYear();
+                const targetMonth = targetDate.getMonth();
+
+                if (targetYear < minAllowedYear) continue;
+
+                const targetRows = getOrCreateSheet(sheetKeyName, targetYear, targetMonth);
+                const targetParcela = `${String(part).padStart(2, '0')}/${String(totalParts).padStart(2, '0')}`;
+
+                let targetIndex = targetRows.findIndex(r =>
+                    r.seriesId === row.seriesId &&
+                    formatParcelaInput(r.parcela || '') === targetParcela
+                );
+
+                if (targetIndex === -1) {
+                    targetIndex = targetRows.findIndex(r =>
+                        formatParcelaInput(r.parcela || '') === targetParcela &&
+                        r.parentInstallmentId === row.id
+                    );
+                }
+
+                if (targetIndex === -1) {
+                    targetIndex = targetRows.findIndex(r =>
+                        formatParcelaInput(r.parcela || '') === targetParcela &&
+                        (r.sourceCard || '') === (row.sourceCard || '') &&
+                        (r.descricao || '').trim().toLowerCase() === desc.toLowerCase()
+                    );
+                }
+
+                let targetRow;
+                if (targetIndex >= 0) {
+                    targetRow = targetRows[targetIndex];
+                } else {
+                    const emptyIndex = targetRows.findIndex(r => !r.descricao && !r.valor && !r.valorTotal);
+                    targetRow = createEmptyRowObj();
+                    if (emptyIndex >= 0) {
+                        targetRows[emptyIndex] = targetRow;
+                    } else {
+                        targetRows.push(targetRow);
+                    }
+                }
+
+                targetRow.descricao = desc;
+                targetRow.valorTotal = formattedTotalVal;
+                targetRow.parcela = targetParcela;
+                targetRow.valor = formattedInstallmentVal;
+                targetRow.seriesId = row.seriesId;
+                targetRow.parentInstallmentId = row.parentInstallmentId || row.id;
+
+                if (row.splitType) {
+                    targetRow.splitType = row.splitType;
+                }
+
+                if (isCard) {
+                    targetRow.responsavel = row.responsavel || '';
+                } else {
+                    targetRow.customOverride = hasAnyRowValueOrContent(targetRow);
+                }
+            }
+        }
+
+        function processAllSync() {
+            purgeExpiredYears();
+            const minAllowedYear = getActiveWindowYears()[0];
+
+            ['itau'].forEach(cardKey => {
+                propagateInstallmentsInSheet(cardKey, minAllowedYear, true);
+            });
+
+            syncCardsToIndividuals();
+
+            ['cleber', 'clau', 'mae'].forEach(personKey => {
+                propagateInstallmentsInSheet(personKey, minAllowedYear, false);
+            });
+
+            Object.keys(sheetsConfig).forEach(sheetKeyName => {
+                const sheetsMap = sheetsConfig[sheetKeyName].sheets;
+                Object.keys(sheetsMap).forEach(periodKey => {
+                    (sheetsMap[periodKey] || []).forEach(r => syncOverrideStateOnRow(r));
+                });
+            });
+
+            saveDataToStorage();
+            populateYearSelectors();
+        }
+
+        function propagateInstallmentsInSheet(sheetKeyName, minAllowedYear, isCardSheet) {
+            const config = sheetsConfig[sheetKeyName];
+            const trackedInstallments = [];
+
+            const sortedPeriodKeys = Object.keys(config.sheets).sort((a, b) => {
+                const [ya, ma] = a.split('-').map(Number);
+                const [yb, mb] = b.split('-').map(Number);
+                return ya !== yb ? ya - yb : ma - mb;
+            });
+
+            sortedPeriodKeys.forEach(periodKey => {
+                const [yStr, mStr] = periodKey.split('-');
+                const startYear = parseInt(yStr, 10);
+                const startMonth = parseInt(mStr, 10);
+                const rows = config.sheets[periodKey] || [];
+
+                rows.forEach(row => {
+                    if (!row.id) row.id = generateRowId();
+                    const rawDesc = (row.descricao || '').trim();
+                    const rawValor = parseCurrencyInput(row.valor);
+
+                    if (!rawDesc || rawValor <= 0) return;
+
+                    const formattedParc = formatParcelaInput(row.parcela);
+                    const match = formattedParc.match(/^(\d+)\s*\/\s*(\d+)$/);
+                    if (match) {
+                        const currentPart = parseInt(match[1], 10);
+                        const totalParts = parseInt(match[2], 10);
+
+                        if (totalParts > 1 && currentPart === 1) {
+                            if (!row.seriesId) row.seriesId = row.id;
+                            trackedInstallments.push({
+                                seriesId: row.seriesId,
+                                parentId: row.id,
+                                descOriginal: rawDesc,
+                                valorTotal: row.valorTotal || '',
+                                valor: rawValor,
+                                responsavel: row.responsavel || '',
+                                splitType: row.splitType || '',
+                                sourceCard: row.sourceCard || '',
+                                customOverride: !!row.customOverride && hasAnyRowValueOrContent(row),
+                                startYear,
+                                startMonth,
+                                totalParts
+                            });
+                        }
+                    }
+                });
+            });
+
+            trackedInstallments.forEach((info) => {
+                const { seriesId, parentId, descOriginal, valorTotal, valor, responsavel, splitType, sourceCard, customOverride, startYear, startMonth, totalParts } = info;
+                const formattedVal = formatValorInput(valor);
+
+                for (let i = 1; i < totalParts; i++) {
+                    let targetMonth = startMonth + i;
+                    let targetYear = startYear + Math.floor(targetMonth / 12);
+                    targetMonth = targetMonth % 12;
+
+                    if (targetYear < minAllowedYear) continue;
+
+                    const targetRows = getOrCreateSheet(sheetKeyName, targetYear, targetMonth);
+                    const parcelaLabel = `${String(i + 1).padStart(2, '0')}/${String(totalParts).padStart(2, '0')}`;
+                    const baseDescLower = descOriginal.toLowerCase();
+
+                    let existingRowIndex = targetRows.findIndex(r =>
+                        r.seriesId && r.seriesId === seriesId && r.parcela === parcelaLabel
+                    );
+
+                    if (existingRowIndex === -1) {
+                        existingRowIndex = targetRows.findIndex(r =>
+                            r.parentInstallmentId === parentId && r.parcela === parcelaLabel
+                        );
+                    }
+
+                    if (existingRowIndex === -1) {
+                        existingRowIndex = targetRows.findIndex(r =>
+                            (r.descricao || '').trim().toLowerCase() === baseDescLower &&
+                            r.parcela === parcelaLabel &&
+                            (r.sourceCard || '') === sourceCard
+                        );
+                    }
+
+                    if (existingRowIndex !== -1) {
+                        targetRows[existingRowIndex].seriesId = seriesId;
+                        targetRows[existingRowIndex].parentInstallmentId = parentId;
+                        targetRows[existingRowIndex].descricao = descOriginal;
+                        if (isCardSheet || customOverride || !targetRows[existingRowIndex].customOverride) {
+                            targetRows[existingRowIndex].valorTotal = valorTotal;
+                            targetRows[existingRowIndex].valor = formattedVal;
+                        }
+                        if (customOverride) targetRows[existingRowIndex].customOverride = true;
+                        if (isCardSheet) targetRows[existingRowIndex].responsavel = responsavel;
+                        if (splitType) targetRows[existingRowIndex].splitType = splitType;
+                    } else {
+                        const rowData = {
+                            id: generateRowId(),
+                            descricao: descOriginal,
+                            valorTotal: valorTotal,
+                            parcela: parcelaLabel,
+                            valor: formattedVal,
+                            responsavel: isCardSheet ? responsavel : '',
+                            splitType: splitType,
+                            sourceCard: sourceCard,
+                            sourceRowId: '',
+                            parentInstallmentId: parentId,
+                            seriesId: seriesId,
+                            customOverride: customOverride
+                        };
+
+                        const emptyIndex = targetRows.findIndex(r => !r.descricao && !r.valor && !r.valorTotal);
+                        if (emptyIndex !== -1) {
+                            targetRows[emptyIndex] = rowData;
+                        } else {
+                            targetRows.push(rowData);
+                        }
+                    }
+                }
+            });
+        }
+
+        function syncCardsToIndividuals() {
+            const cardKeys = ['itau'];
+            const individuals = ['cleber', 'clau', 'mae'];
+
+            const activeCardEntries = new Map();
+
+            cardKeys.forEach(cardKey => {
+                const cardSheets = sheetsConfig[cardKey].sheets;
+                Object.keys(cardSheets).forEach(periodKey => {
+                    const [yStr, mStr] = periodKey.split('-');
+                    const year = parseInt(yStr, 10);
+                    const month = parseInt(mStr, 10);
+                    const rows = cardSheets[periodKey] || [];
+
+                    rows.forEach(row => {
+                        if (!row.id) row.id = generateRowId();
+                        if (!row.seriesId) row.seriesId = row.id;
+                        const desc = (row.descricao || '').trim();
+                        const installmentVal = parseCurrencyInput(row.valor);
+                        const fullCompraVal = parseCurrencyInput(row.valorTotal);
+                        const resp = row.responsavel || '';
+
+                        if (!desc || installmentVal <= 0 || !resp) return;
+
+                        const { targets, divisor, isShared } = getSplitTargets(resp);
+                        if (targets.length === 0) return;
+
+                        activeCardEntries.set(`${cardKey}:${row.id}`, {
+                            cardKey,
+                            sourceRowId: row.id,
+                            cardSeriesId: row.seriesId,
+                            year,
+                            month,
+                            periodKey,
+                            descricao: desc,
+                            parcela: formatParcelaInput(row.parcela || ''),
+                            defaultTotalVal: fullCompraVal > 0 ? formatValorInput(fullCompraVal / divisor) : '',
+                            defaultVal: formatValorInput(installmentVal / divisor),
+                            splitType: isShared ? resp : '',
+                            targets
+                        });
+                    });
+                });
+            });
+
+            individuals.forEach(person => {
+                const personSheets = sheetsConfig[person].sheets;
+                const matchedSourceKeys = new Set();
+
+                Object.keys(personSheets).forEach(periodKey => {
+                    const rows = personSheets[periodKey];
+                    for (let i = 0; i < rows.length; i++) {
+                        const r = rows[i];
+                        if (!r.sourceCard || !r.sourceRowId) continue;
+
+                        const compositeKey = `${r.sourceCard}:${r.sourceRowId}`;
+                        const entry = activeCardEntries.get(compositeKey);
+
+                        if (!entry || entry.periodKey !== periodKey || !entry.targets.includes(person)) {
+                            rows[i] = createEmptyRowObj();
+                        } else {
+                            if (!r.seriesId) r.seriesId = `${person}_${entry.cardSeriesId}`;
+                            if (!r.customOverride) {
+                                r.descricao = entry.descricao;
+                                r.valorTotal = entry.defaultTotalVal;
+                                r.parcela = entry.parcela;
+                                r.valor = entry.defaultVal;
+                            }
+                            r.splitType = entry.splitType;
+                            matchedSourceKeys.add(compositeKey);
+                        }
+                    }
+                });
+
+                activeCardEntries.forEach((entry, compositeKey) => {
+                    if (!entry.targets.includes(person)) return;
+                    if (matchedSourceKeys.has(compositeKey)) return;
+
+                    const targetRows = getOrCreateSheet(person, entry.year, entry.month);
+                    const newRow = {
+                        id: generateRowId(),
+                        descricao: entry.descricao,
+                        valorTotal: entry.defaultTotalVal,
+                        parcela: entry.parcela,
+                        valor: entry.defaultVal,
+                        responsavel: '',
+                        splitType: entry.splitType,
+                        sourceCard: entry.cardKey,
+                        sourceRowId: entry.sourceRowId,
+                        parentInstallmentId: '',
+                        seriesId: `${person}_${entry.cardSeriesId}`,
+                        customOverride: false
+                    };
+
+                    const emptyIdx = targetRows.findIndex(r => !r.descricao && !r.valor && !r.valorTotal);
+                    if (emptyIdx !== -1) {
+                        targetRows[emptyIdx] = newRow;
+                    } else {
+                        targetRows.push(newRow);
+                    }
+                });
+            });
+        }
+
+        let activeSheetKey = 'itau';
+        let activeMonth = CURRENT_MONTH;
+        let activeYear = CURRENT_YEAR;
+
+        function formatBRL(value) {
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function parseCurrencyInput(raw) {
+            if (!raw) return 0;
+            if (typeof raw === 'number') return isNaN(raw) ? 0 : raw;
+            const cleaned = String(raw).replace(/R\$/gi, '').replace(/\s+/g, '').replace(/\./g, '').replace(',', '.');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function getMonthTotal(sheetKeyName, year, month) {
+            const sheet = sheetsConfig[sheetKeyName].sheets[getSheetKey(year, month)];
+            if (!sheet) return 0;
+            return sheet.reduce((acc, row) => acc + parseCurrencyInput(row.valor), 0);
+        }
+
+        function getCommittedLimitTotal(sheetKeyName, currentYear, currentMonth) {
+            const sheetsMap = sheetsConfig[sheetKeyName].sheets;
+            let totalCommitted = 0;
+
+            Object.keys(sheetsMap).forEach(periodKey => {
+                const [yStr, mStr] = periodKey.split('-');
+                const y = parseInt(yStr, 10);
+                const m = parseInt(mStr, 10);
+
+                if (y > currentYear || (y === currentYear && m >= currentMonth)) {
+                    const rows = sheetsMap[periodKey] || [];
+                    rows.forEach(row => {
+                        totalCommitted += parseCurrencyInput(row.valor);
+                    });
+                }
+            });
+
+            return totalCommitted;
+        }
+
+        function updateDashboardMetrics() {
+            ['itau'].forEach(bankKey => {
+                const monthlyInvoiceTotal = getMonthTotal(bankKey, CURRENT_YEAR, CURRENT_MONTH);
+                const committedLimitTotal = getCommittedLimitTotal(bankKey, CURRENT_YEAR, CURRENT_MONTH);
+
+                const config = sheetsConfig[bankKey];
+                const avail = Math.max(0, config.limit - committedLimitTotal);
+                const pct = Math.min(100, (committedLimitTotal / config.limit) * 100);
+
+                updateInvoiceStatusBadge(`${bankKey}-status-badge`, monthlyInvoiceTotal, config.closingDay);
+
+                document.getElementById(`${bankKey}-fatura`).textContent = formatBRL(monthlyInvoiceTotal);
+                document.getElementById(`${bankKey}-disponivel`).textContent = formatBRL(avail);
+                document.getElementById(`${bankKey}-percent`).textContent = `${pct.toFixed(1).replace('.', ',')}%`;
+                document.getElementById(`${bankKey}-bar`).style.width = `${pct}%`;
+
+                const goalPct = (monthlyInvoiceTotal / config.goal) * 100;
+                const goalBarPct = Math.min(100, goalPct);
+                const goalDiff = config.goal - monthlyInvoiceTotal;
+
+                document.getElementById(`${bankKey}-meta-pct`).textContent = `${goalPct.toFixed(1).replace('.', ',')}%`;
+                
+                const metaBar = document.getElementById(`${bankKey}-meta-bar`);
+                metaBar.style.width = `${goalBarPct}%`;
+                
+                if (goalPct <= 60) {
+                    metaBar.style.backgroundColor = '#10b981';
+                } else if (goalPct <= 100) {
+                    metaBar.style.backgroundColor = '#FF6B00';
+                } else {
+                    metaBar.style.backgroundColor = '#ef4444';
+                }
+
+                const badge = document.getElementById(`${bankKey}-meta-badge`);
+                if (goalDiff >= 0) {
+                    document.getElementById(`${bankKey}-meta-status`).textContent = `Restam ${formatBRL(goalDiff)}`;
+                    badge.textContent = 'Dentro da meta';
+                    badge.className = 'font-medium text-emerald-600';
+                } else {
+                    document.getElementById(`${bankKey}-meta-status`).textContent = `Excedeu ${formatBRL(Math.abs(goalDiff))}`;
+                    badge.textContent = 'Meta ultrapassada';
+                    badge.className = 'font-semibold text-white bg-[#FF6B00] px-2 py-0.5 rounded';
+                }
+            });
+
+            ['cleber', 'clau', 'mae'].forEach(person => {
+                const total = getMonthTotal(person, CURRENT_YEAR, CURRENT_MONTH);
+                const el = document.getElementById(`${person}-total`);
+                if (el) el.textContent = formatBRL(total);
+            });
+        }
+
+        const monthlyGoalLinePlugin = {
+            id: 'monthlyGoalLine',
+            afterDatasetsDraw(chart) {
+                const goalValue = chart.options.plugins.monthlyGoalLine?.goalValue;
+                const lineColor = chart.options.plugins.monthlyGoalLine?.lineColor || '#FF6B00';
+                if (!goalValue) return;
+                const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+                const yPos = y.getPixelForValue(goalValue);
+                ctx.save();
+                ctx.beginPath();
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 1.75;
+                ctx.strokeStyle = lineColor;
+                ctx.moveTo(left, yPos);
+                ctx.lineTo(right, yPos);
+                ctx.stroke();
+                ctx.restore();
+            }
+        };
+
+        function createGoalGradientBarColor(goalValue) {
+            return function(context) {
+                const chart = context.chart;
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea || !scales?.y) return '#10b981';
+                const bottomY = chartArea.bottom;
+                const goalY = Math.min(bottomY - 1, Math.max(chartArea.top, scales.y.getPixelForValue(goalValue)));
+                const gradient = ctx.createLinearGradient(0, bottomY, 0, goalY);
+                gradient.addColorStop(0, '#10b981');
+                gradient.addColorStop(0.70, '#FF6B00');
+                gradient.addColorStop(1, '#ef4444');
+                return gradient;
+            };
+        }
+
+        function updateCharts() {
+            ['itau'].forEach(bankKey => {
+                const yearSel = document.getElementById(`chart-year-${bankKey}`);
+                const selectedYear = yearSel ? parseInt(yearSel.value, 10) : CURRENT_YEAR;
+
+                const values = [];
+                for (let m = 0; m < 12; m++) {
+                    values.push(getMonthTotal(bankKey, selectedYear, m));
+                }
+
+                const goal = sheetsConfig[bankKey].goal;
+                const lineColor = '#FF6B00';
+                const canvasId = `${bankKey}Chart`;
+
+                if (window[`${bankKey}ChartInstance`]) window[`${bankKey}ChartInstance`].destroy();
+
+                window[`${bankKey}ChartInstance`] = new Chart(document.getElementById(canvasId).getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: MONTH_LABELS,
+                        datasets: [{
+                            label: sheetsConfig[bankKey].name,
+                            data: values,
+                            backgroundColor: createGoalGradientBarColor(goal),
+                            borderRadius: 5,
+                            barPercentage: 0.65
+                        }]
+                    },
+                    plugins: [monthlyGoalLinePlugin],
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            monthlyGoalLine: { goalValue: goal, lineColor: lineColor },
+                            tooltip: {
+                                backgroundColor: '#27272a',
+                                titleColor: '#FF6B00',
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const val = context.parsed.y;
+                                        const diff = goal - val;
+                                        const status = diff >= 0 ? `Dentro da meta (sobra ${formatBRL(diff)})` : `Acima da meta (+${formatBRL(Math.abs(diff))})`;
+                                        return [`Gastos: ${formatBRL(val)}`, `Meta mensal: ${formatBRL(goal)}`, status];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                suggestedMax: goal * 1.2,
+                                grid: { color: '#e4e4e7' },
+                                border: { display: false },
+                                ticks: { font: { size: 11, family: 'Inter' }, color: '#71717a', callback: v => 'R$ ' + v.toLocaleString('pt-BR') }
+                            },
+                            x: {
+                                grid: { display: false },
+                                border: { display: false },
+                                ticks: { font: { size: 11, family: 'Inter', weight: '600' }, color: '#3f3f46' }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function openSheetModal(sheetKeyName) {
+            activeSheetKey = sheetKeyName;
+            activeMonth = CURRENT_MONTH;
+            activeYear = CURRENT_YEAR;
+
+            document.getElementById('sheet-month-select').value = String(activeMonth);
+            document.getElementById('sheet-year-select').value = String(activeYear);
+
+            const cfg = sheetsConfig[sheetKeyName];
+            const topAccent = document.getElementById('sheet-top-accent');
+            const title = document.getElementById('sheet-title');
+            const subtitle = document.getElementById('sheet-subtitle');
+            const periodBox = document.getElementById('sheet-period-box');
+            const addRowBtn = document.getElementById('sheet-add-row-btn');
+            const clearBtn = document.getElementById('sheet-clear-btn');
+            const exportXlsxBtn = document.getElementById('sheet-export-xlsx-btn');
+            const doneBtn = document.getElementById('sheet-done-btn');
+            const colorLegend = document.getElementById('color-legend');
+
+            topAccent.className = `h-1.5 w-full ${cfg.accentClass}`;
+            title.textContent = cfg.title;
+            subtitle.textContent = cfg.subtitle;
+            periodBox.className = `flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border ${cfg.borderAccentClass}`;
+            addRowBtn.className = `inline-flex items-center gap-1.5 bg-white hover:bg-zinc-50 text-zinc-800 border ${cfg.borderAccentClass} text-xs font-semibold px-3 py-1.5 rounded-lg shadow-2xs transition-colors cursor-pointer`;
+            doneBtn.className = `inline-flex items-center gap-1.5 ${cfg.btnClass} text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xs transition-all cursor-pointer`;
+
+            if (cfg.isCard) {
+                clearBtn.classList.remove('hidden');
+                clearBtn.classList.add('inline-flex');
+                exportXlsxBtn.classList.add('hidden');
+                exportXlsxBtn.classList.remove('inline-flex');
+                colorLegend.classList.add('hidden');
+                colorLegend.classList.remove('flex');
+            } else {
+                clearBtn.classList.add('hidden');
+                clearBtn.classList.remove('inline-flex');
+                exportXlsxBtn.classList.remove('hidden');
+                exportXlsxBtn.classList.add('inline-flex');
+                colorLegend.classList.remove('hidden');
+                colorLegend.classList.add('flex');
+            }
+
+            renderSheetRows();
+            const modal = document.getElementById('sheet-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSheetModal() {
+            if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+                document.activeElement.blur();
+            }
+            syncSheetTotalToDashboard();
+            document.getElementById('sheet-modal').classList.add('hidden');
+            document.getElementById('sheet-modal').classList.remove('flex');
+        }
+
+        function changeSheetPeriod() {
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+                document.activeElement.blur();
+            }
+            activeMonth = parseInt(document.getElementById('sheet-month-select').value, 10);
+            activeYear = parseInt(document.getElementById('sheet-year-select').value, 10);
+            renderSheetRows();
+        }
+
+        function exportCurrentSheetToXlsx() {
+            if (typeof XLSX === 'undefined') {
+                showCustomAlert('Biblioteca Indisponível', 'Não foi possível carregar o gerador de Excel (.xlsx). Verifique sua conexão com a internet.');
+                return;
+            }
+
+            const cfg = sheetsConfig[activeSheetKey];
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            const monthName = MONTH_FULL_NAMES[activeMonth];
+
+            const activeRows = rows.filter(r =>
+                (r.descricao || '').trim() !== '' ||
+                parseCurrencyInput(r.valorTotal) > 0 ||
+                parseCurrencyInput(r.valor) > 0
+            );
+
+            if (activeRows.length === 0) {
+                showCustomAlert('Planilha Vazia', `Não há lançamentos preenchidos em ${monthName}/${activeYear} para ${cfg.name}.`);
+                return;
+            }
+
+            const aoaData = [
+                [`${cfg.title} — ${monthName} ${activeYear}`],
+                [],
+                ['#', 'Descrição', 'Valor Total (R$)', 'Parcela', 'Valor Parcela (R$)']
+            ];
+
+            let totalPeriodo = 0;
+
+            activeRows.forEach((r, idx) => {
+                const vTotal = parseCurrencyInput(r.valorTotal);
+                const vParcela = parseCurrencyInput(r.valor);
+                totalPeriodo += vParcela;
+
+                aoaData.push([
+                    idx + 1,
+                    (r.descricao || '').trim(),
+                    vTotal > 0 ? vTotal : null,
+                    (r.parcela || '').trim() || '1x',
+                    vParcela > 0 ? vParcela : null
+                ]);
+            });
+
+            aoaData.push([]);
+            aoaData.push(['', 'TOTAL DO PERÍODO', '', '', totalPeriodo]);
+
+            const ws = XLSX.utils.aoa_to_sheet(aoaData);
+
+            ws['!cols'] = [
+                { wch: 6 },
+                { wch: 38 },
+                { wch: 18 },
+                { wch: 14 },
+                { wch: 18 }
+            ];
+
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = 3; R <= range.e.r; R++) {
+                [2, 4].forEach(C => {
+                    const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (ws[cellAddr] && typeof ws[cellAddr].v === 'number') {
+                        ws[cellAddr].z = 'R$ #,##0.00';
+                    }
+                });
+            }
+
+            const wb = XLSX.utils.book_new();
+            const safeSheetName = `${cfg.name}_${MONTH_LABELS[activeMonth]}_${activeYear}`.slice(0, 31);
+            XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+
+            const cleanPersonName = cfg.name
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, '_');
+            const cleanMonthName = monthName
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+
+            XLSX.writeFile(wb, `Lancamentos_${cleanPersonName}_${cleanMonthName}_${activeYear}.xlsx`);
+        }
+
+        function renderSheetRows() {
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            const thead = document.getElementById('sheet-thead');
+            const tbody = document.getElementById('sheet-tbody');
+            const isCard = sheetsConfig[activeSheetKey].isCard;
+
+            if (isCard) {
+                thead.innerHTML = `
+                    <tr>
+                        <th class="w-10 py-2.5 px-2 text-center border-r border-zinc-200">#</th>
+                        <th class="py-2.5 px-3 border-r border-zinc-200">Descrição</th>
+                        <th class="w-28 sm:w-32 py-2.5 px-3 text-right border-r border-zinc-200">Valor Total</th>
+                        <th class="w-24 sm:w-28 py-2.5 px-2 text-center border-r border-zinc-200">Parcela</th>
+                        <th class="w-28 sm:w-32 py-2.5 px-3 text-right border-r border-zinc-200">Valor Parcela</th>
+                        <th class="w-40 sm:w-44 py-2.5 px-3 text-center border-r border-zinc-200">Quem Paga</th>
+                        <th class="w-10 py-2.5 px-2 text-center"></th>
+                    </tr>
+                `;
+            } else {
+                thead.innerHTML = `
+                    <tr>
+                        <th class="w-10 py-2.5 px-2 text-center border-r border-zinc-200">#</th>
+                        <th class="py-2.5 px-3 border-r border-zinc-200">Descrição</th>
+                        <th class="w-32 sm:w-36 py-2.5 px-3 text-right border-r border-zinc-200">Valor Total</th>
+                        <th class="w-28 sm:w-32 py-2.5 px-3 text-center border-r border-zinc-200">Parcela</th>
+                        <th class="w-32 sm:w-36 py-2.5 px-3 text-right">Valor Parcela</th>
+                    </tr>
+                `;
+            }
+
+            tbody.innerHTML = '';
+
+            rows.forEach((row, index) => {
+                syncOverrideStateOnRow(row);
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white hover:bg-zinc-50 transition-colors';
+
+                const descColor = getDescriptionColorStyle(row, activeSheetKey);
+
+                const showOverrideAsterisk = (!isCard && row.customOverride && hasAnyRowValueOrContent(row));
+                const editedIndicator = showOverrideAsterisk
+                    ? `<span title="Ajustado manualmente" class="ml-1.5 text-[10px] text-[#FF6B00] font-bold">*</span>`
+                    : '';
+
+                let responsavelCell = '';
+                let deleteCell = '';
+
+                if (isCard) {
+                    const optionsHtml = SPLIT_OPTIONS.map(opt =>
+                        `<option value="${opt.value}" ${row.responsavel === opt.value ? 'selected' : ''}>${opt.label}</option>`
+                    ).join('');
+
+                    responsavelCell = `
+                        <td class="p-0 border-r border-zinc-200 bg-white">
+                            <select data-row="${index}" data-field="responsavel"
+                                onchange="updateResponsavelCell(${index}, this.value)"
+                                onkeydown="handleCellKeydown(event, ${index}, 'responsavel')"
+                                class="w-full px-2.5 py-2 text-xs font-medium text-zinc-800 bg-white focus:outline-none cursor-pointer">
+                                ${optionsHtml}
+                            </select>
+                        </td>
+                    `;
+
+                    deleteCell = `
+                        <td class="py-1 px-2 text-center bg-white">
+                            <button type="button" tabindex="-1" onclick="confirmRemoveRow(${index})" title="Remover linha" class="text-zinc-400 hover:text-rose-600 p-1 rounded transition-colors cursor-pointer">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </td>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-1.5 px-2 text-center text-[11px] font-semibold text-zinc-400 bg-white border-r border-zinc-200">${index + 1}</td>
+                    <td class="p-0 border-r border-zinc-200 ${descColor.className || 'bg-white'}" style="${descColor.style}">
+                        <div class="flex items-center">
+                            <input type="text" data-row="${index}" data-field="descricao" value="${escapeHtml(row.descricao)}" placeholder="Descrição"
+                                oninput="updateSheetCell(${index}, 'descricao', this.value)"
+                                onkeydown="handleCellKeydown(event, ${index}, 'descricao')"
+                                onblur="handleCellBlur(this, ${index}, 'descricao')"
+                                class="w-full px-3 py-2 text-xs bg-transparent focus:outline-none">
+                        </div>
+                    </td>
+                    <td class="p-0 border-r border-zinc-200 bg-white">
+                        <input type="text" inputmode="decimal" data-row="${index}" data-field="valorTotal" value="${escapeHtml(row.valorTotal)}" placeholder="0,00"
+                            oninput="updateSheetCell(${index}, 'valorTotal', this.value)"
+                            onkeydown="handleCellKeydown(event, ${index}, 'valorTotal')"
+                            onblur="handleCellBlur(this, ${index}, 'valorTotal')"
+                            class="w-full px-3 py-2 text-xs text-right font-medium text-zinc-800 bg-white focus:outline-none">
+                    </td>
+                    <td class="p-0 border-r border-zinc-200 bg-white">
+                        <input type="text" data-row="${index}" data-field="parcela" value="${escapeHtml(row.parcela)}" placeholder="1x ou 5x"
+                            oninput="updateSheetCell(${index}, 'parcela', this.value)"
+                            onkeydown="handleCellKeydown(event, ${index}, 'parcela')"
+                            onblur="handleCellBlur(this, ${index}, 'parcela')"
+                            class="w-full px-2 py-2 text-xs text-center font-medium text-zinc-800 bg-white focus:outline-none">
+                    </td>
+                    <td class="p-0 ${isCard ? 'border-r border-zinc-200' : ''} bg-white">
+                        <div class="flex items-center justify-end pr-2">
+                            <input type="text" inputmode="decimal" data-row="${index}" data-field="valor" value="${escapeHtml(row.valor)}" placeholder="0,00"
+                                oninput="updateSheetCell(${index}, 'valor', this.value)"
+                                onkeydown="handleCellKeydown(event, ${index}, 'valor')"
+                                onblur="handleCellBlur(this, ${index}, 'valor')"
+                                class="w-full px-2 py-2 text-xs font-semibold text-right text-zinc-900 bg-white focus:outline-none">
+                            ${editedIndicator}
+                        </div>
+                    </td>
+                    ${responsavelCell}
+                    ${deleteCell}
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('sheet-row-count').textContent = rows.length;
+            lucide.createIcons();
+            recalculateSheetTotal();
+        }
+
+        function updateSheetCell(rowIndex, field, value) {
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            const row = rows[rowIndex];
+            if (!row) return;
+
+            row[field] = value;
+
+            if (field === 'valorTotal' || field === 'parcela') {
+                calculateInstallmentFromTotal(row);
+                const valorInputEl = document.querySelector(`#sheet-tbody [data-row="${rowIndex}"][data-field="valor"]`);
+                if (valorInputEl) {
+                    valorInputEl.value = row.valor;
+                }
+            }
+
+            if (!sheetsConfig[activeSheetKey].isCard) {
+                row.customOverride = hasAnyRowValueOrContent(row);
+            }
+
+            cascadeEditedRowForward(activeSheetKey, activeYear, activeMonth, rowIndex);
+            saveDataToStorage();
+            recalculateSheetTotal();
+            updateDashboardMetrics();
+        }
+
+        function updateResponsavelCell(rowIndex, value) {
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            rows[rowIndex].responsavel = value;
+            cascadeEditedRowForward(activeSheetKey, activeYear, activeMonth, rowIndex);
+            processAllSync();
+            updateDashboardMetrics();
+        }
+
+        function handleCellKeydown(event, rowIndex, field) {
+            if (event.key === 'Enter' || (event.key === 'Tab' && !event.shiftKey)) {
+                event.preventDefault();
+
+                const isCard = sheetsConfig[activeSheetKey].isCard;
+                let nextRow = rowIndex;
+                let nextField = 'descricao';
+
+                if (field === 'descricao') {
+                    nextField = 'valorTotal';
+                } else if (field === 'valorTotal') {
+                    nextField = 'parcela';
+                } else if (field === 'parcela') {
+                    nextField = 'valor';
+                } else if (field === 'valor') {
+                    if (isCard) {
+                        nextField = 'responsavel';
+                    } else {
+                        nextRow = rowIndex + 1;
+                        nextField = 'descricao';
+                    }
+                } else if (field === 'responsavel') {
+                    nextRow = rowIndex + 1;
+                    nextField = 'descricao';
+                }
+
+                const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+                if (nextRow >= rows.length) {
+                    rows.push(createEmptyRowObj());
+                    renderSheetRows();
+                }
+
+                const nextEl = document.querySelector(`#sheet-tbody [data-row="${nextRow}"][data-field="${nextField}"]`);
+                if (nextEl) {
+                    nextEl.focus();
+                    if (nextEl.select) nextEl.select();
+                }
+            }
+        }
+
+        function handleCellBlur(inputEl, rowIndex, field) {
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            const row = rows[rowIndex];
+            if (!row) return;
+
+            if (field === 'valorTotal') {
+                const formattedTotal = formatValorInput(inputEl.value);
+                row.valorTotal = formattedTotal;
+                inputEl.value = formattedTotal;
+                calculateInstallmentFromTotal(row);
+            } else if (field === 'parcela') {
+                const formattedParc = formatParcelaInput(inputEl.value);
+                row.parcela = formattedParc;
+                inputEl.value = formattedParc;
+                calculateInstallmentFromTotal(row);
+            } else if (field === 'valor') {
+                const formattedVal = formatValorInput(inputEl.value);
+                row.valor = formattedVal;
+                inputEl.value = formattedVal;
+            }
+
+            const valorInputEl = document.querySelector(`#sheet-tbody [data-row="${rowIndex}"][data-field="valor"]`);
+            if (valorInputEl) {
+                valorInputEl.value = row.valor;
+            }
+
+            if (!sheetsConfig[activeSheetKey].isCard) {
+                row.customOverride = hasAnyRowValueOrContent(row);
+            }
+
+            cascadeEditedRowForward(activeSheetKey, activeYear, activeMonth, rowIndex);
+            processAllSync();
+
+            if (!sheetsConfig[activeSheetKey].isCard) {
+                const refreshedRows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+                const refreshedRow = refreshedRows[rowIndex];
+                if (refreshedRow) {
+                    refreshedRow.customOverride = hasAnyRowValueOrContent(refreshedRow);
+                    cascadeEditedRowForward(activeSheetKey, activeYear, activeMonth, rowIndex);
+                }
+            } else {
+                cascadeEditedRowForward(activeSheetKey, activeYear, activeMonth, rowIndex);
+            }
+
+            saveDataToStorage();
+            recalculateSheetTotal();
+            updateDashboardMetrics();
+            if (field === 'parcela' || !sheetsConfig[activeSheetKey].isCard) {
+                renderSheetRows();
+            }
+        }
+
+        function addSheetRow() {
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            rows.push(createEmptyRowObj());
+            saveDataToStorage();
+            renderSheetRows();
+        }
+
+        function confirmRemoveRow(rowIndex) {
+            showCustomAlert(
+                'Remover Lançamento',
+                'Apagar esta linha e suas parcelas futuras em todas as planilhas?',
+                true,
+                (confirmed) => {
+                    if (confirmed) {
+                        const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+                        const rowToDelete = rows[rowIndex];
+                        if (rowToDelete) {
+                            deleteFutureInstallmentsForRow(activeSheetKey, activeYear, activeMonth, rowToDelete);
+
+                            if (sheetsConfig[activeSheetKey].isCard) {
+                                deleteSyncedIndividualRowsForCardRow(
+                                    activeSheetKey,
+                                    rowToDelete.id,
+                                    rowToDelete.seriesId,
+                                    rowToDelete.descricao,
+                                    activeYear,
+                                    activeMonth
+                                );
+                            }
+
+                            if (rows.length > INITIAL_ROW_COUNT) {
+                                rows.splice(rowIndex, 1);
+                            } else {
+                                rows[rowIndex] = createEmptyRowObj();
+                            }
+                        }
+                        processAllSync();
+                        renderSheetRows();
+                        syncSheetTotalToDashboard();
+                    }
+                }
+            );
+        }
+
+        function clearCurrentSheet() {
+            showCustomAlert(
+                'Zerar Período',
+                `Limpar todos os lançamentos de ${MONTH_FULL_NAMES[activeMonth]}/${activeYear} (${sheetsConfig[activeSheetKey].name}) e suas parcelas futuras em todas as planilhas?`,
+                true,
+                (confirmed) => {
+                    if (confirmed) {
+                        const periodKey = getSheetKey(activeYear, activeMonth);
+                        const currentRows = sheetsConfig[activeSheetKey].sheets[periodKey] || [];
+                        currentRows.forEach(r => {
+                            if (r && (r.id || r.descricao || r.valor || r.valorTotal)) {
+                                deleteFutureInstallmentsForRow(activeSheetKey, activeYear, activeMonth, r);
+
+                                if (sheetsConfig[activeSheetKey].isCard) {
+                                    deleteSyncedIndividualRowsForCardRow(
+                                        activeSheetKey,
+                                        r.id,
+                                        r.seriesId,
+                                        r.descricao,
+                                        activeYear,
+                                        activeMonth
+                                    );
+                                }
+                            }
+                        });
+                        sheetsConfig[activeSheetKey].sheets[periodKey] = createEmptyRows(INITIAL_ROW_COUNT);
+                        processAllSync();
+                        renderSheetRows();
+                        syncSheetTotalToDashboard();
+                    }
+                }
+            );
+        }
+
+        function recalculateSheetTotal() {
+            const rows = getOrCreateSheet(activeSheetKey, activeYear, activeMonth);
+            const total = rows.reduce((acc, row) => acc + parseCurrencyInput(row.valor), 0);
+            document.getElementById('sheet-total-display').textContent = formatBRL(total);
+            return total;
+        }
+
+        function syncSheetTotalToDashboard() {
+            processAllSync();
+            recalculateSheetTotal();
+            updateDashboardMetrics();
+            updateCharts();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCurrentDate();
+            renderCardBillingDates();
+            loadDataFromStorage();
+            updateDashboardMetrics();
+            updateCharts();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
